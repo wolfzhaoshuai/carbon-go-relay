@@ -6,7 +6,7 @@ A tool that work with graphite. Receive traffic from brubeck, then transfer to c
 
 ## Features
 - receive metrics from brubeck then transfer them to carbon-c-relay
-- receive metrics from your own customized data source then transfered them to carbon-c-relay, with graphite metric foramt: `metric value timestamp`
+- receive metrics from your own customized data source then transfered them to carbon-c-relay, use tcp with graphite metric foramt: `metric value timestamp`
 - config statsGroup, then give some statistic
 
 ## Tutorial
