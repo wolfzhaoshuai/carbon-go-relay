@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"carbon-go-relay/apm"
 	"carbon-go-relay/global"
 	"carbon-go-relay/http"
 	"carbon-go-relay/receiver"
@@ -29,6 +30,7 @@ func main() {
 	http.Start()
 	receiver.Start()
 	sender.Start()
+	apm.Start()
 
 	select {}
 }
