@@ -1,0 +1,32 @@
+{
+  "debug": true,
+  "max_brubeck_length": 102400,
+  "send_batch_size": 200,
+  "send_period_milliseconds": 1000,
+  "http": {
+    "enabled": true,
+    "listen": "0.0.0.0:6060"
+  },
+  "socket": {
+    "enabled": true,
+    "listen": "0.0.0.0:4444",
+    "timeout": 3600
+  },
+  "relay_cluster": {
+    "relay_cluster_list": [
+      {
+        "alias_name": "zstats",
+        "address": "1.2.3.4:2004",
+        "patterns": ["^zstats[.]counts.*$"]
+      },
+      {
+        "alias_name": "default",
+        "address": "2.3.4.5:2004",
+        "patterns": [".*"]
+      }
+    ]
+  },
+  "stats_group":[
+    "nginx", "zstats.counts", "others"
+  ]
+}
