@@ -26,9 +26,10 @@ type SocketConfig struct {
 
 //RelayPattern give address and relevant patterns
 type RelayPattern struct {
-	AliasName string   `json:"alias_name"`
-	Address   string   `json:"address"`
-	Patterns  []string `json:"patterns"`
+	AliasName       string   `json:"alias_name"`
+	Address         string   `json:"address"`
+	Patterns        []string `json:"patterns"`
+	MaxWorkerNumber int      `json:"max_worker_number"`
 }
 
 //RelayClusterStruct give relay clusters

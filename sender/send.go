@@ -19,7 +19,5 @@ func Start() {
 	getConnPatterns()
 	getStatsGroup()
 	checkBrubeckQueue()
-	// to keep alive with carbon-c-relay
-	cronCheckHealth()
 	sendToRelay()
 }

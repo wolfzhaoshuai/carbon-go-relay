@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"net"
 	"regexp"
 	"strings"
 	"sync/atomic"
@@ -37,29 +38,51 @@ func FindMatchedPattern(line string) {
 	matchLine(line)
 }
 
-func handleSendRelay() {
-	for _, line := range GlobalConnPatterns {
-		tmpData := line.Data.PopBackBy(sendBatchSize)
-		count := len(tmpData)
-		atomic.AddInt32(&global.GlobalOriginSendItems, int32(count))
-		if count > 0 {
-			pushItems := make([]string, count)
-			for i := 0; i < count; i++ {
-				pushItems[i] = tmpData[i].(string)
-			}
+func trueHandleSendRelay(line ConnPattern) {
+	tmpData := line.Data.PopBackBy(sendBatchSize)
+	count := len(tmpData)
+	atomic.AddInt32(&global.GlobalOriginSendItems, int32(count))
+	if count > 0 {
+		var tmpConn net.Conn
+		if len(line.Relays) > 0 {
+			tmpConn = <-line.Relays
+		} else {
+			tmpConn = initConnection(line.Address)
+		}
 
-			if global.Config().Debug {
-				utils.Zlog.Debug("send relay: ", line.Patterns, pushItems)
-			}
+		pushItems := make([]string, count)
+		for i := 0; i < count; i++ {
+			pushItems[i] = tmpData[i].(string)
+		}
 
-			msgs := strings.Join(pushItems, "\n")
-			_, err := line.Conn.Write(utils.StringToBytes(msgs + "\n"))
+		if global.Config().Debug {
+			utils.Zlog.Debug("send relay: ", line.Patterns, pushItems)
+		}
+
+		msgs := strings.Join(pushItems, "\n")
+		_, err := tmpConn.Write(utils.StringToBytes(msgs + "\n"))
+		if err != nil {
+			//one retry
+			tmpConn.Close()
+			tmpConn = initConnection(line.Address)
+			_, err = tmpConn.Write(utils.StringToBytes(msgs + "\n"))
 			if err != nil {
 				utils.Zlog.Critical(line.Patterns, " connection write error")
-				continue
+				return
 			}
 			atomic.AddInt32(&global.GlobalSendItems, int32(count))
+			recycleConnection(line, tmpConn)
+			return
 		}
+		atomic.AddInt32(&global.GlobalSendItems, int32(count))
+		recycleConnection(line, tmpConn)
+		return
+	}
+}
+
+func handleSendRelay() {
+	for _, line := range GlobalConnPatterns {
+		go trueHandleSendRelay(line)
 	}
 }
 

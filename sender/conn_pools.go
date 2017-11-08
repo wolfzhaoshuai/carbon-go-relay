@@ -3,7 +3,6 @@ package sender
 import (
 	"net"
 	"regexp"
-	"sync"
 
 	"carbon-go-relay/global"
 	"carbon-go-relay/utils"
@@ -13,34 +12,42 @@ import (
 
 //ConnPattern give connection and pattern
 type ConnPattern struct {
-	Conn      net.Conn
+	Address   string
 	Patterns  []*regexp.Regexp
 	AliasName string
 	Data      *nlist.SafeListLimited
-}
-
-//ApmStatsMap give metric map
-type ApmStatsMap struct {
-	sync.RWMutex
-	Data map[string]int
+	Relays    chan net.Conn
 }
 
 //GlobalConnPatterns includes all relay connection and relavent patterns
 var (
 	GlobalConnPatterns []ConnPattern
-	//GlobalStatsMap     ApmStatsMap
-	GlobalStatsMap []int32
+	GlobalStatsMap     []int32
 )
+
+func initConnection(address string) net.Conn {
+	tmpConn, err := net.Dial("tcp", address)
+	if err != nil {
+		utils.Zlog.Warningf("address %s connected error", address)
+		return nil
+	}
+	return tmpConn
+}
+
+func recycleConnection(line ConnPattern, connection net.Conn) {
+	if len(line.Relays) < cap(line.Relays) {
+		line.Relays <- connection
+	} else {
+		dropConn := <-line.Relays
+		dropConn.Close()
+		line.Relays <- connection
+	}
+}
 
 //GetConnPatterns get relay patterns
 func getConnPatterns() {
 	cfg := global.Config()
 	for _, line := range cfg.RelayCluster.RelayClusterList {
-		tmpConn, err := net.Dial("tcp", line.Address)
-		if err != nil {
-			utils.Zlog.Warningf("address %s connected error", line.Address)
-			continue
-		}
 		tmpPatternList := make([]*regexp.Regexp, 0)
 		for _, patternExpression := range line.Patterns {
 			tmpPattern, err := regexp.Compile(patternExpression)
@@ -50,11 +57,13 @@ func getConnPatterns() {
 			}
 			tmpPatternList = append(tmpPatternList, tmpPattern)
 		}
+
 		GlobalConnPatterns = append(GlobalConnPatterns, ConnPattern{
-			Conn:      tmpConn,
+			Address:   line.Address,
 			Patterns:  tmpPatternList,
 			AliasName: line.AliasName,
-			Data:      nlist.NewSafeListLimited(configBrubeckMaxSize)})
+			Data:      nlist.NewSafeListLimited(configBrubeckMaxSize),
+			Relays:    make(chan net.Conn, line.MaxWorkerNumber)})
 	}
 }
 

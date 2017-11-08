@@ -13,7 +13,7 @@ import (
 
 var metricPrefix = "carbon-c-relay.portal"
 
-//Start to collect application performance metrics
+//Start application performance metrics
 func Start() {
 	utils.Zlog.Info("APM statistic start")
 	ticker := time.NewTicker(time.Second * 10)
@@ -49,6 +49,11 @@ func handleRelayQueueMetric() {
 		metricValue := float64(global.Config().MaxBrubeckLength-line.Data.Len()) / float64(global.Config().MaxBrubeckLength)
 		msg := fmt.Sprintf("%s %.3f %d", metricName, metricValue, currentTS)
 		sender.FindMatchedPattern(msg)
+
+		metricRelayName := fmt.Sprintf("%s.%s.pattern_stats.%s.relays.free.value", metricPrefix, global.Hostname, metricMiddle)
+		metricRelayValue := float64(cap(line.Relays) - len(line.Relays))
+		relayMsg := fmt.Sprintf("%s %.3f %d", metricRelayName, metricRelayValue, currentTS)
+		sender.FindMatchedPattern(relayMsg)
 	}
 }
 

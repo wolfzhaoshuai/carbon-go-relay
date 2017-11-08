@@ -8,6 +8,6 @@ func TestConfig(t *testing.T) {
 	config := Config()
 
 	Convey("should be ok", t, func() {
-		So(config.SendBatchSize, ShouldEqual, 2000)
+		So(config.SendBatchSize, ShouldEqual, 200)
 	})
 }
