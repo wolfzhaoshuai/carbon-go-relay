@@ -51,7 +51,7 @@ func handleRelayQueueMetric() {
 		sender.FindMatchedPattern(msg)
 
 		metricRelayName := fmt.Sprintf("%s.%s.pattern_stats.%s.relays.free.value", metricPrefix, global.Hostname, metricMiddle)
-		metricRelayValue := float64(cap(line.Relays) - len(line.Relays))
+		metricRelayValue := float64(len(line.Relays))
 		relayMsg := fmt.Sprintf("%s %.3f %d", metricRelayName, metricRelayValue, currentTS)
 		sender.FindMatchedPattern(relayMsg)
 	}

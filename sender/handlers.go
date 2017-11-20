@@ -47,9 +47,11 @@ func trueHandleSendRelay(line ConnPattern) {
 		if len(line.Relays) > 0 {
 			tmpConn = <-line.Relays
 		} else {
-			tmpConn = initConnection(line.Address)
+			utils.Zlog.Criticalf("pattern %s has no connection to be used", line.AliasName)
+			line.Data.PushFrontBatch(tmpData)
+			atomic.AddInt32(&global.GlobalOriginSendItems, -1*int32(count))
+			return
 		}
-
 		pushItems := make([]string, count)
 		for i := 0; i < count; i++ {
 			pushItems[i] = tmpData[i].(string)
@@ -65,6 +67,11 @@ func trueHandleSendRelay(line ConnPattern) {
 			//one retry
 			tmpConn.Close()
 			tmpConn = initConnection(line.Address)
+			if tmpConn == nil {
+				line.Data.PushFrontBatch(tmpData)
+				atomic.AddInt32(&global.GlobalOriginSendItems, -1*int32(count))
+				return
+			}
 			_, err = tmpConn.Write(utils.StringToBytes(msgs + "\n"))
 			if err != nil {
 				utils.Zlog.Critical(line.Patterns, " connection write error")

@@ -37,10 +37,6 @@ func initConnection(address string) net.Conn {
 func recycleConnection(line ConnPattern, connection net.Conn) {
 	if len(line.Relays) < cap(line.Relays) {
 		line.Relays <- connection
-	} else {
-		dropConn := <-line.Relays
-		dropConn.Close()
-		line.Relays <- connection
 	}
 }
 
@@ -58,12 +54,20 @@ func getConnPatterns() {
 			tmpPatternList = append(tmpPatternList, tmpPattern)
 		}
 
+		tmpRelays := make(chan net.Conn, line.MaxWorkerNumber)
+		for i := 0; i < line.MaxWorkerNumber; i++ {
+			tmpConn := initConnection(line.Address)
+			if tmpConn != nil {
+				tmpRelays <- tmpConn
+			}
+		}
+
 		GlobalConnPatterns = append(GlobalConnPatterns, ConnPattern{
 			Address:   line.Address,
 			Patterns:  tmpPatternList,
 			AliasName: line.AliasName,
 			Data:      nlist.NewSafeListLimited(configBrubeckMaxSize),
-			Relays:    make(chan net.Conn, line.MaxWorkerNumber)})
+			Relays:    tmpRelays})
 	}
 }
 
